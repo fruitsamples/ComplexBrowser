@@ -1,7 +1,7 @@
 /*
      File: FileSystemNode.m
  Abstract: An abstract wrapper node around the file system.
-  Version: 1.0
+  Version: 1.1
  
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple
  Inc. ("Apple") in consideration of your agreement to the following
@@ -41,7 +41,7 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE
  POSSIBILITY OF SUCH DAMAGE.
  
- Copyright (C) 2009 Apple Inc. All Rights Reserved.
+ Copyright (C) 2011 Apple Inc. All Rights Reserved.
  
  */
 
@@ -118,8 +118,10 @@
         
         CFURLEnumeratorRef enumerator = CFURLEnumeratorCreateForDirectoryURL(NULL, (CFURLRef)_url, kCFURLEnumeratorSkipInvisibles, (CFArrayRef)[NSArray array]);
         NSURL *childURL = nil;
-        while (CFURLEnumeratorGetNextURL(enumerator, (CFURLRef *)&childURL, NULL) == kCFURLEnumeratorSuccess) {
-            if (childURL) {
+	CFURLEnumeratorResult enumeratorResult;
+	do {
+            enumeratorResult = CFURLEnumeratorGetNextURL(enumerator, (CFURLRef *)&childURL, NULL);
+            if (enumeratorResult == kCFURLEnumeratorSuccess) {
                 FileSystemNode *node = [[[FileSystemNode alloc] initWithURL:childURL] autorelease];
                 if (_children != nil) {
                     NSInteger oldIndex = [_children indexOfObject:childURL];
@@ -129,11 +131,11 @@
                     }
                 }
                 [newChildren addObject:node];
-            } else {
+            } else if (enumeratorResult == kCFURLEnumeratorError) {
                 // A possible enhancement would be to present error-based items to the user.
             }
-        }
-
+	} while (enumeratorResult != kCFURLEnumeratorEnd);
+        
         [_children release];
         _childrenDirty = NO;
         // Now sort them
